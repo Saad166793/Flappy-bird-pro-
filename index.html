@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Pro - Enhanced Edition</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            overflow: hidden;
+            touch-action: manipulation;
+            background: linear-gradient(to bottom, #70c5ce, #4a9ca8);
+            font-family: 'Arial', sans-serif;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-container {
+            position: relative;
+            width: 360px;
+            height: 640px;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+        #bird {
+            position: absolute;
+            width: 40px;
+            height: 30px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 30"><path fill="%23FFD700" d="M35 15c0 5-5 10-15 10S5 20 5 15s5-10 15-10 15 5 15 10z"/><circle cx="30" cy="10" r="2" fill="%23000"/><path d="M15 5l-5 5m5-5l5 5" stroke="%23000" stroke-width="2"/></svg>') no-repeat;
+            z-index: 10;
+            transition: transform 0.1s;
+            filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.3));
+        }
+        .pipe {
+            position: absolute;
+            width: 60px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 400"><rect width="60" height="400" fill="%234CAF50"/><rect x="5" y="0" width="50" height="400" fill="%238BC34A"/><rect x="0" y="0" width="60" height="20" fill="%232E7D32"/></svg>');
+            z-index: 5;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .pipe-top {
+            transform: rotate(180deg);
+        }
+        #ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60"><rect width="100" height="60" fill="%23D68910"/><rect x="0" y="0" width="100" height="20" fill="%23E67E22"/></svg>') repeat-x;
+            z-index: 20;
+            box-shadow: 0 -5px 10px rgba(0,0,0,0.3);
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 40px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 30;
+            font-weight: bold;
+        }
+        #jump-display {
+            position: absolute;
+            top: 70px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 20px;
+            color: #ffeb3b;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            z-index: 30;
+            font-weight: bold;
+        }
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 40;
+            display: none;
+            backdrop-filter: blur(3px);
+        }
+        .btn {
+            margin-top: 20px;
+            padding: 12px 35px;
+            background: linear-gradient(to bottom, #f1c40f, #f39c12);
+            border: none;
+            border-radius: 30px;
+            font-size: 20px;
+            color: #2c3e50;
+            cursor: pointer;
+            width: 220px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            outline: none;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        #lobby {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(52, 152, 219, 0.85), rgba(41, 128, 185, 0.9));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 50;
+            text-align: center;
+        }
+        #jump-select {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(155, 89, 182, 0.85), rgba(142, 68, 173, 0.9));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 60;
+            text-align: center;
+            display: none;
+        }
+        .game-title {
+            font-size: 36px;
+            color: #f1c40f;
+            text-shadow: 0 0 10px rgba(241, 196, 15, 0.7), 
+                         3px 3px 0 rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        .sub-title {
+            font-size: 18px;
+            color: #ecf0f1;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .jump-option {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            width: 300px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            text-align: left;
+        }
+        .jump-option:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .jump-option.selected {
+            background: rgba(241, 196, 15, 0.3);
+            border: 2px solid #f1c40f;
+        }
+        .jump-option h3 {
+            color: #f1c40f;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        .jump-option h3 i {
+            margin-right: 10px;
+            font-size: 24px;
+        }
+        .jump-option p {
+            font-size: 14px;
+            color: #ecf0f1;
+            line-height: 1.5;
+        }
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            z-index: 1;
+            animation: float 15s infinite linear;
+        }
+        .cloud:nth-child(1) { width: 100px; height: 35px; top: 15%; left: 10%; animation-delay: 0s; }
+        .cloud:nth-child(2) { width: 70px; height: 25px; top: 25%; right: 15%; animation-delay: 2s; }
+        .cloud:nth-child(3) { width: 90px; height: 30px; top: 40%; left: 20%; animation-delay: 4s; }
+        .cloud:nth-child(4) { width: 80px; height: 28px; top: 60%; right: 25%; animation-delay: 6s; }
+        
+        @keyframes float {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(20px); }
+            100% { transform: translateX(0); }
+        }
+        
+        #jump-indicator {
+            position: absolute;
+            bottom: 80px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 18px;
+            color: #ff5722;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            z-index: 30;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .jump-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+        
+        .info-box {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 15px;
+            margin: 20px 0;
+            max-width: 320px;
+            border: 2px dashed #f1c40f;
+        }
+        
+        .info-box h3 {
+            color: #f1c40f;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .info-box p {
+            margin: 8px 0;
+            line-height: 1.5;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .highlight {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+        
+        #jump-type-display {
+            position: absolute;
+            top: 110px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 18px;
+            color: #00bcd4;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            z-index: 30;
+            font-weight: bold;
+        }
+        
+        /* NEW STYLES FOR LEVELS, LEADERBOARD AND SOUND */
+        #level-select {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(231, 76, 60, 0.85), rgba(192, 57, 43, 0.9));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 70;
+            text-align: center;
+            display: none;
+        }
+        
+        .level-option {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            width: 300px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .level-option:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .level-option.selected {
+            background: rgba(241, 196, 15, 0.3);
+            border: 2px solid #f1c40f;
+        }
+        
+        #leaderboard {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(46, 204, 113, 0.85), rgba(39, 174, 96, 0.9));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 80;
+            text-align: center;
+            display: none;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+        
+        #leaderboard-content {
+            width: 100%;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            margin: 20px 0;
+        }
+        
+        .leaderboard-entry {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+        }
+        
+        .leaderboard-rank {
+            font-weight: bold;
+            color: #f1c40f;
+            margin-right: 10px;
+        }
+        
+        .leaderboard-name {
+            flex: 1;
+            text-align: left;
+            padding-left: 10px;
+        }
+        
+        .leaderboard-score {
+            font-weight: bold;
+            min-width: 60px;
+        }
+        
+        .leaderboard-level {
+            font-size: 14px;
+            color: #ddd;
+            min-width: 100px;
+            text-align: right;
+        }
+        
+        .sound-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 15px;
+        }
+        
+        .sound-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .sound-btn:hover {
+            background: rgba(0, 0, 0, 0.5);
+            transform: scale(1.1);
+        }
+        
+        .sound-btn.active {
+            background: rgba(241, 196, 15, 0.8);
+            color: #2c3e50;
+        }
+        
+        .level-tag {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: white;
+            z-index: 31;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .name-input {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            color: white;
+            font-size: 16px;
+            width: 220px;
+            margin: 15px 0;
+            text-align: center;
+            outline: none;
+        }
+        
+        .name-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 100;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .back-btn:hover {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .leaderboard-header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #f1c40f;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="cloud"></div>
+        <div class="cloud"></div>
+        <div class="cloud"></div>
+        <div class="cloud"></div>
+        
+        <div id="bird"></div>
+        <div id="ground"></div>
+        <div id="score">0</div>
+        <div id="jump-type-display"></div>
+        <div id="jump-display"></div>
+        <div id="jump-indicator"></div>
+        <div id="level-tag" class="level-tag">Level: Easy</div>
+        
+        <div id="game-over">
+            <h1>Game Over!</h1>
+            <div id="final-score">Score: 0</div>
+            <input type="text" id="player-name" class="name-input" placeholder="Enter your name" maxlength="15">
+            <button id="save-score" class="btn">Save Score</button>
+            <button id="restart-btn" class="btn">Play Again</button>
+            <button id="menu-btn" class="btn">Main Menu</button>
+        </div>
+        
+        <div id="lobby">
+            <div class="game-title">FLAPPY BIRD PRO</div>
+            <div class="sub-title">Choose Your Jump Style</div>
+            
+            <div class="info-box">
+                <h3>JUMP OPTIONS</h3>
+                <p>Select your preferred jump style for a unique gameplay experience!</p>
+            </div>
+            
+            <button id="start-btn" class="btn">Select Jump Style</button>
+            <button id="level-select-btn" class="btn">Level Selection</button>
+            <button id="leaderboard-btn" class="btn">Leaderboard</button>
+        </div>
+        
+        <div id="jump-select">
+            <div class="back-btn" id="jump-back"><i class="fas fa-arrow-left"></i></div>
+            <div class="game-title">SELECT JUMP STYLE</div>
+            <div class="sub-title">Choose your preferred jumping mechanic</div>
+            
+            <div class="jump-option" data-jump="single">
+                <h3><i class="fas fa-arrow-up"></i> Single Jump</h3>
+                <p>Classic Flappy Bird jump mechanics. Tap to jump with a fixed upward force.</p>
+            </div>
+            
+            <div class="jump-option" data-jump="double">
+                <h3><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-up"></i> Double Jump</h3>
+                <p>Jump twice in mid-air! Perform a second jump before landing.</p>
+            </div>
+            
+            <div class="jump-option" data-jump="float">
+                <h3><i class="fas fa-feather"></i> Float Jump</h3>
+                <p>Hold to float upwards. Release to fall. Requires careful timing!</p>
+            </div>
+            
+            <button id="confirm-jump" class="btn">Start Game</button>
+        </div>
+        
+        <div id="level-select">
+            <div class="back-btn" id="level-back"><i class="fas fa-arrow-left"></i></div>
+            <div class="game-title">SELECT LEVEL</div>
+            <div class="sub-title">Choose your difficulty level</div>
+            
+            <div class="level-option" data-level="easy">
+                <i class="fas fa-seedling"></i> Easy
+            </div>
+            
+            <div class="level-option" data-level="medium">
+                <i class="fas fa-tree"></i> Medium
+            </div>
+            
+            <div class="level-option" data-level="hard">
+                <i class="fas fa-mountain"></i> Hard
+            </div>
+        </div>
+        
+        <div id="leaderboard">
+            <div class="back-btn" id="leaderboard-back"><i class="fas fa-arrow-left"></i></div>
+            <div class="game-title">LEADERBOARD</div>
+            <div class="sub-title">Top Scores</div>
+            
+            <div class="leaderboard-header">
+                <span>Player</span>
+                <span>Score</span>
+                <span>Level</span>
+            </div>
+            
+            <div id="leaderboard-content">
+                <!-- Leaderboard entries will be added here dynamically -->
+            </div>
+            
+            <button id="clear-leaderboard" class="btn">Clear Leaderboard</button>
+        </div>
+    </div>
+
+    <div class="sound-controls">
+        <div class="sound-btn active" id="music-btn">
+            <i class="fas fa-music"></i>
+        </div>
+        <div class="sound-btn active" id="sound-btn">
+            <i class="fas fa-volume-up"></i>
+        </div>
+    </div>
+
+    <script>
+        // Game elements
+        const bird = document.getElementById('bird');
+        const gameContainer = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('score');
+        const jumpDisplay = document.getElementById('jump-display');
+        const jumpIndicator = document.getElementById('jump-indicator');
+        const jumpTypeDisplay = document.getElementById('jump-type-display');
+        const levelTag = document.getElementById('level-tag');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const restartBtn = document.getElementById('restart-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        const saveScoreBtn = document.getElementById('save-score');
+        const playerNameInput = document.getElementById('player-name');
+        const lobby = document.getElementById('lobby');
+        const jumpSelect = document.getElementById('jump-select');
+        const startBtn = document.getElementById('start-btn');
+        const jumpOptions = document.querySelectorAll('.jump-option');
+        const confirmJumpBtn = document.getElementById('confirm-jump');
+        const levelSelect = document.getElementById('level-select');
+        const levelSelectBtn = document.getElementById('level-select-btn');
+        const levelOptions = document.querySelectorAll('.level-option');
+        const levelBackBtn = document.getElementById('level-back');
+        const leaderboard = document.getElementById('leaderboard');
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const leaderboardContent = document.getElementById('leaderboard-content');
+        const leaderboardBackBtn = document.getElementById('leaderboard-back');
+        const clearLeaderboardBtn = document.getElementById('clear-leaderboard');
+        const jumpBackBtn = document.getElementById('jump-back');
+        const musicBtn = document.getElementById('music-btn');
+        const soundBtn = document.getElementById('sound-btn');
+
+        // Game variables
+        let birdY = 250;
+        let birdVelocity = 0;
+        let gravity = 0.5;
+        let jumpForce = -10;
+        let gameSpeed = 2;
+        let pipes = [];
+        let score = 0;
+        let gameRunning = false;
+        let animationId;
+        let groundOffset = 0;
+        let pipeGap = 180;
+        let pipeFrequency = 1500;
+        let lastPipeTime = 0;
+        let currentJumpStyle = 'single';
+        let jumpCount = 0;
+        let airJumps = 0;
+        let isJumping = false;
+        let floatForce = -0.8;
+        let currentLevel = 'easy';
+        let leaderboardData = [];
+        let soundEnabled = true;
+        let musicEnabled = true;
+        let backgroundMusic;
+        
+        // Level configurations
+        const levels = {
+            easy: {
+                gravity: 0.4,
+                jumpForce: -9,
+                pipeGap: 200,
+                pipeFrequency: 1800,
+                gameSpeed: 2,
+                color: "#27ae60"
+            },
+            medium: {
+                gravity: 0.5,
+                jumpForce: -10,
+                pipeGap: 180,
+                pipeFrequency: 1500,
+                gameSpeed: 2.5,
+                color: "#f39c12"
+            },
+            hard: {
+                gravity: 0.6,
+                jumpForce: -11,
+                pipeGap: 160,
+                pipeFrequency: 1200,
+                gameSpeed: 3,
+                color: "#e74c3c"
+            }
+        };
+
+        // Initialize game
+        function initGame() {
+            // Apply level settings
+            const levelConfig = levels[currentLevel];
+            gravity = levelConfig.gravity;
+            jumpForce = levelConfig.jumpForce;
+            pipeGap = levelConfig.pipeGap;
+            pipeFrequency = levelConfig.pipeFrequency;
+            gameSpeed = levelConfig.gameSpeed;
+            levelTag.textContent = `Level: ${currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1)}`;
+            levelTag.style.background = levelConfig.color;
+            
+            // Reset variables
+            birdY = 300;
+            birdVelocity = 0;
+            score = 0;
+            jumpCount = 0;
+            airJumps = 0;
+            pipes = [];
+            lastPipeTime = 0;
+            groundOffset = 0;
+            isJumping = false;
+
+            // Reset displays
+            scoreDisplay.textContent = '0';
+            jumpDisplay.textContent = getJumpDisplayText();
+            jumpTypeDisplay.textContent = getJumpTypeText();
+            gameOverScreen.style.display = 'none';
+            jumpIndicator.style.opacity = '0';
+
+            // Clear existing pipes
+            document.querySelectorAll('.pipe').forEach(pipe => pipe.remove());
+
+            // Position bird
+            bird.style.top = birdY + 'px';
+            bird.style.left = '100px';
+            bird.style.transform = 'rotate(0deg)';
+
+            // Start game loop
+            gameRunning = true;
+            lastFrameTime = performance.now();
+            gameLoop();
+            
+            // Play background music if enabled
+            if (musicEnabled && backgroundMusic) {
+                backgroundMusic.currentTime = 0;
+                backgroundMusic.play().catch(e => console.log("Audio play error:", e));
+            }
+        }
+
+        // Get jump display text based on current style
+        function getJumpDisplayText() {
+            switch(currentJumpStyle) {
+                case 'single':
+                    return 'Jumps: ' + jumpCount;
+                case 'double':
+                    return `Jumps: ${jumpCount} | Air: ${1 - airJumps}`;
+                case 'float':
+                    return isJumping ? 'FLOATING ↑' : 'TAP & HOLD';
+                default:
+                    return '';
+            }
+        }
+
+        // Get jump type text
+        function getJumpTypeText() {
+            switch(currentJumpStyle) {
+                case 'single': return 'SINGLE JUMP';
+                case 'double': return 'DOUBLE JUMP';
+                case 'float': return 'FLOAT JUMP';
+                default: return '';
+            }
+        }
+
+        // Game loop
+        function gameLoop(timestamp) {
+            if (!gameRunning) return;
+
+            // Update bird position
+            birdVelocity += gravity;
+            
+            // Apply float force if jumping in float mode
+            if (currentJumpStyle === 'float' && isJumping) {
+                birdVelocity += floatForce;
+            }
+            
+            birdY += birdVelocity;
+            bird.style.top = birdY + 'px';
+            bird.style.transform = `rotate(${birdVelocity * 3}deg)`;
+
+            // Check for collisions
+            if (checkCollision()) {
+                gameOver();
+                return;
+            }
+
+            // Move ground
+            groundOffset = (groundOffset + gameSpeed) % 20;
+            ground.style.backgroundPositionX = `-${groundOffset}px`;
+
+            // Generate pipes
+            if (timestamp - lastPipeTime > pipeFrequency) {
+                createPipe();
+                lastPipeTime = timestamp;
+            }
+
+            // Move pipes
+            movePipes();
+
+            // Increase score when passing pipes
+            updateScore();
+
+            // Increase difficulty
+            if (score > 0 && score % 5 === 0) {
+                gameSpeed = levels[currentLevel].gameSpeed + Math.floor(score / 5) * 0.2;
+                pipeGap = Math.max(120, pipeGap - Math.floor(score / 5) * 2);
+                pipeFrequency = Math.max(1000, pipeFrequency - Math.floor(score / 5) * 30);
+            }
+
+            // Update jump display
+            jumpDisplay.textContent = getJumpDisplayText();
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // Create new pipes
+        function createPipe() {
+            const minHeight = 60;
+            const maxHeight = gameContainer.clientHeight - minHeight - pipeGap - 60;
+            const pipeHeight = minHeight + Math.random() * maxHeight;
+
+            // Top pipe
+            const topPipe = document.createElement('div');
+            topPipe.className = 'pipe pipe-top';
+            topPipe.style.height = pipeHeight + 'px';
+            topPipe.style.left = gameContainer.clientWidth + 'px';
+            topPipe.style.top = '0';
+            gameContainer.appendChild(topPipe);
+
+            // Bottom pipe
+            const bottomPipe = document.createElement('div');
+            bottomPipe.className = 'pipe';
+            bottomPipe.style.height = (gameContainer.clientHeight - pipeHeight - pipeGap - 60) + 'px';
+            bottomPipe.style.left = gameContainer.clientWidth + 'px';
+            bottomPipe.style.top = (pipeHeight + pipeGap) + 'px';
+            gameContainer.appendChild(bottomPipe);
+
+            pipes.push({
+                top: topPipe,
+                bottom: bottomPipe,
+                x: gameContainer.clientWidth,
+                passed: false
+            });
+        }
+
+        // Move all pipes
+        function movePipes() {
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                const pipe = pipes[i];
+                pipe.x -= gameSpeed;
+                pipe.top.style.left = pipe.x + 'px';
+                pipe.bottom.style.left = pipe.x + 'px';
+
+                // Remove pipes that are off screen
+                if (pipe.x < -60) {
+                    pipe.top.remove();
+                    pipe.bottom.remove();
+                    pipes.splice(i, 1);
+                }
+            }
+        }
+
+        // Check for collisions
+        function checkCollision() {
+            // Check ground collision
+            if (birdY > gameContainer.clientHeight - 60 - 30) {
+                return true;
+            }
+
+            // Check ceiling collision
+            if (birdY < 0) {
+                return true;
+            }
+
+            // Check pipe collisions
+            const birdLeft = 100;
+            const birdRight = 100 + 40;
+            const birdTop = birdY;
+            const birdBottom = birdY + 30;
+
+            for (const pipe of pipes) {
+                const pipeLeft = pipe.x;
+                const pipeRight = pipe.x + 60;
+
+                // Only check if bird is in the same x-range as pipe
+                if (birdRight > pipeLeft && birdLeft < pipeRight) {
+                    const topPipeBottom = parseInt(pipe.top.style.height);
+                    const bottomPipeTop = parseInt(pipe.bottom.style.top);
+
+                    if (birdTop < topPipeBottom || birdBottom > bottomPipeTop) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // Update score when passing pipes
+        function updateScore() {
+            const birdLeft = 100;
+            
+            for (const pipe of pipes) {
+                if (!pipe.passed && pipe.x + 60 < birdLeft) {
+                    pipe.passed = true;
+                    score++;
+                    scoreDisplay.textContent = score;
+                    playSound('score');
+                }
+            }
+        }
+
+        // Game over
+        function gameOver() {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            finalScoreDisplay.textContent = 'Score: ' + score;
+            gameOverScreen.style.display = 'flex';
+            playerNameInput.value = '';
+            
+            // Stop music
+            if (backgroundMusic) {
+                backgroundMusic.pause();
+            }
+            
+            // Play game over sound
+            playSound('hit');
+        }
+
+        // Make bird jump based on selected style
+        function jump() {
+            if (!gameRunning) return;
+            
+            switch(currentJumpStyle) {
+                case 'single':
+                    birdVelocity = jumpForce;
+                    jumpCount++;
+                    showJumpIndicator('JUMP!');
+                    playSound('jump');
+                    break;
+                    
+                case 'double':
+                    // Allow double jump only if not on ground and have air jump available
+                    if (birdY < gameContainer.clientHeight - 60 - 30 && airJumps < 1) {
+                        birdVelocity = jumpForce;
+                        airJumps++;
+                        jumpCount++;
+                        showJumpIndicator('AIR JUMP!');
+                        playSound('jump');
+                    } 
+                    // Normal jump from ground
+                    else if (birdY >= gameContainer.clientHeight - 60 - 30) {
+                        birdVelocity = jumpForce;
+                        airJumps = 0;
+                        jumpCount++;
+                        showJumpIndicator('JUMP!');
+                        playSound('jump');
+                    }
+                    break;
+                    
+                case 'float':
+                    isJumping = true;
+                    jumpCount++;
+                    showJumpIndicator('FLOATING!');
+                    playSound('jump');
+                    break;
+            }
+            
+            jumpDisplay.textContent = getJumpDisplayText();
+        }
+
+        // Stop floating
+        function stopJump() {
+            if (currentJumpStyle === 'float') {
+                isJumping = false;
+                jumpDisplay.textContent = getJumpDisplayText();
+            }
+        }
+
+        // Show jump indicator
+        function showJumpIndicator(text) {
+            jumpIndicator.textContent = text;
+            jumpIndicator.style.opacity = '1';
+            
+            setTimeout(() => {
+                jumpIndicator.style.opacity = '0';
+            }, 800);
+        }
+
+        // Play sound effects
+        function playSound(type) {
+            if (!soundEnabled) return;
+            
+            // In a real implementation, you would play actual sound files
+            // For this demo, we'll just simulate the concept
+            console.log(`Playing ${type} sound`);
+        }
+
+        // Initialize audio
+        function initAudio() {
+            // In a real implementation, you would create Audio objects
+            // For this demo, we'll simulate the concept
+            backgroundMusic = new Audio();
+            console.log("Audio initialized");
+        }
+
+        // Save score to leaderboard
+        function saveScore() {
+            const name = playerNameInput.value.trim() || "Anonymous";
+            
+            leaderboardData.push({
+                name,
+                score,
+                level: currentLevel,
+                jumpStyle: currentJumpStyle,
+                date: new Date()
+            });
+            
+            // Sort by score descending
+            leaderboardData.sort((a, b) => b.score - a.score);
+            
+            // Keep only top 10 scores
+            if (leaderboardData.length > 10) {
+                leaderboardData = leaderboardData.slice(0, 10);
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('flappyBirdLeaderboard', JSON.stringify(leaderboardData));
+            
+            // Update leaderboard display
+            updateLeaderboard();
+            
+            // Show confirmation
+            jumpIndicator.textContent = 'Score Saved!';
+            jumpIndicator.style.opacity = '1';
+            setTimeout(() => {
+                jumpIndicator.style.opacity = '0';
+            }, 1500);
+        }
+
+        // Update leaderboard display
+        function updateLeaderboard() {
+            leaderboardContent.innerHTML = '';
+            
+            if (leaderboardData.length === 0) {
+                leaderboardContent.innerHTML = '<div class="info-box"><p>No scores yet. Play a game to get on the leaderboard!</p></div>';
+                return;
+            }
+            
+            leaderboardData.forEach((entry, index) => {
+                const entryElement = document.createElement('div');
+                entryElement.className = 'leaderboard-entry';
+                
+                const levelMap = {
+                    easy: 'Easy',
+                    medium: 'Medium',
+                    hard: 'Hard'
+                };
+                
+                const jumpStyleMap = {
+                    single: 'Single',
+                    double: 'Double',
+                    float: 'Float'
+                };
+                
+                entryElement.innerHTML = `
+                    <div class="leaderboard-rank">${index + 1}</div>
+                    <div class="leaderboard-name">${entry.name}</div>
+                    <div class="leaderboard-score">${entry.score}</div>
+                    <div class="leaderboard-level">${levelMap[entry.level]} | ${jumpStyleMap[entry.jumpStyle]}</div>
+                `;
+                
+                leaderboardContent.appendChild(entryElement);
+            });
+        }
+
+        // Load leaderboard from localStorage
+        function loadLeaderboard() {
+            const savedData = localStorage.getItem('flappyBirdLeaderboard');
+            if (savedData) {
+                leaderboardData = JSON.parse(savedData);
+            }
+            updateLeaderboard();
+        }
+
+        // Clear leaderboard
+        function clearLeaderboard() {
+            leaderboardData = [];
+            localStorage.removeItem('flappyBirdLeaderboard');
+            updateLeaderboard();
+        }
+
+        // Reset air jumps when bird is on ground
+        function resetAirJumps() {
+            if (birdY >= gameContainer.clientHeight - 60 - 30) {
+                airJumps = 0;
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('click', jump);
+        document.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            jump();
+        });
+        
+        document.addEventListener('mouseup', stopJump);
+        document.addEventListener('touchend', stopJump);
+
+        restartBtn.addEventListener('click', function() {
+            gameOverScreen.style.display = 'none';
+            initGame();
+        });
+
+        menuBtn.addEventListener('click', function() {
+            gameOverScreen.style.display = 'none';
+            lobby.style.display = 'flex';
+        });
+
+        saveScoreBtn.addEventListener('click', saveScore);
+        
+        startBtn.addEventListener('click', function() {
+            lobby.style.display = 'none';
+            jumpSelect.style.display = 'flex';
+        });
+
+        // Jump style selection
+        jumpOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from all options
+                jumpOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                
+                // Set current jump style
+                currentJumpStyle = this.dataset.jump;
+            });
+        });
+
+        confirmJumpBtn.addEventListener('click', function() {
+            // If no jump style selected, default to single
+            if (!currentJumpStyle) {
+                currentJumpStyle = 'single';
+                document.querySelector('[data-jump="single"]').classList.add('selected');
+            }
+            
+            jumpSelect.style.display = 'none';
+            initGame();
+        });
+        
+        // Level selection
+        levelSelectBtn.addEventListener('click', function() {
+            lobby.style.display = 'none';
+            levelSelect.style.display = 'flex';
+        });
+        
+        levelOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from all options
+                levelOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                
+                // Set current level
+                currentLevel = this.dataset.level;
+            });
+        });
+        
+        // Leaderboard
+        leaderboardBtn.addEventListener('click', function() {
+            lobby.style.display = 'none';
+            leaderboard.style.display = 'flex';
+        });
+        
+        // Back buttons
+        levelBackBtn.addEventListener('click', function() {
+            levelSelect.style.display = 'none';
+            lobby.style.display = 'flex';
+        });
+        
+        leaderboardBackBtn.addEventListener('click', function() {
+            leaderboard.style.display = 'none';
+            lobby.style.display = 'flex';
+        });
+        
+        jumpBackBtn.addEventListener('click', function() {
+            jumpSelect.style.display = 'none';
+            lobby.style.display = 'flex';
+        });
+        
+        // Clear leaderboard
+        clearLeaderboardBtn.addEventListener('click', clearLeaderboard);
+        
+        // Sound controls
+        musicBtn.addEventListener('click', function() {
+            musicEnabled = !musicEnabled;
+            this.classList.toggle('active', musicEnabled);
+            
+            if (backgroundMusic) {
+                if (musicEnabled) {
+                    backgroundMusic.play().catch(e => console.log("Audio play error:", e));
+                } else {
+                    backgroundMusic.pause();
+                }
+            }
+        });
+        
+        soundBtn.addEventListener('click', function() {
+            soundEnabled = !soundEnabled;
+            this.classList.toggle('active', soundEnabled);
+        });
+
+        // Initialize
+        bird.style.top = birdY + 'px';
+        bird.style.left = '100px';
+        lobby.style.display = 'flex';
+        gameOverScreen.style.display = 'none';
+        jumpSelect.style.display = 'none';
+        levelSelect.style.display = 'none';
+        leaderboard.style.display = 'none';
+        
+        // Set default jump style
+        currentJumpStyle = 'single';
+        
+        // Load leaderboard
+        loadLeaderboard();
+        
+        // Initialize audio
+        initAudio();
+        
+        // Set default level
+        document.querySelector('[data-level="easy"]').classList.add('selected');
+        
+        // Set default jump style
+        document.querySelector('[data-jump="single"]').classList.add('selected');
+    </script>
+</body>
+</html>
